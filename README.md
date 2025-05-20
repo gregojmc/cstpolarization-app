@@ -1,11 +1,14 @@
-# cstpolarization-app
+# CST Polarization App
 
-App para visualizar resultados CST y convertir de polarización lineal a circular.
+Visualizador interactivo de resultados CST y conversión de polarización lineal a circular.
 
-## Cómo usar
+Esta app permite:
+- Leer ficheros `.txt` exportados desde CST con parámetros S.
+- Graficar módulo y fase de S21 y S11.
+- Calcular Axial Ratio y diferencia de fase entre componentes.
 
-Sube un archivo `.txt` exportado desde CST que contenga los parámetros S.
+## Cómo desplegar en Streamlit Cloud
 
-## Despliegue en Streamlit Cloud
-
-La app principal es `app_cst_linear_to_circular.py`
+1. Subir este repositorio a GitHub.
+2. Ir a [streamlit.io/cloud](https://streamlit.io/cloud) y crear una nueva app.
+3. Seleccionar este repositorio y el archivo principal:
