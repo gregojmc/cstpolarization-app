@@ -27,80 +27,68 @@ def calc_AR(Tyy, Txy):
 
 def leer_cst(filename):
     """
-    Lee un archivo de salida de CST con datos S-parameters complejos y extrae 
-    la información en formato usable.
-    
-    filename: Ruta al archivo .txt exportado desde CST.
-    
-    Retorna:
-
-    f: Vector de frecuencias (GHz).
-    S21_VV, S21_HV, S11_VV, S11_HV, S21_VH, S21_HH, S11_VH, S11_HH: 
-        Arreglos complejos con parámetros S.
-    Info: Diccionario con los metadatos extraídos del archivo 
-        (como dimensiones físicas o etiquetas)
-    
+    Lee un fichero CST en texto plano y devuelve siempre:
+      - f: array de frecuencias (GHz)
+      - S21_VV, S21_HV, S11_VV, S11_HV,
+        S21_VH, S21_HH, S11_VH, S11_HH: arrays complejos
+      - Info: dict con 'Parameters' = {...}
     """
-
     Info = {}
-    S = {
-        'S21_VV': [], 'S21_HV': [], 'S11_VV': [], 'S11_HV': [],
-        'S21_VH': [], 'S21_HH': [], 'S11_VH': [], 'S11_HH': []
-    }
+    bloques = []
+    f = None
 
-    with open(filename, 'r') as file:
-        lines = file.readlines()
+    with open(filename, 'r') as fid:
+        lines = fid.readlines()
 
-    # Leer Info
-    Info['name'] = lines[0].replace('%', '').split('->')[0].strip()
-    param_line = lines[1]
-    params_str = param_line.split('{')[1].split('}')[0]
-    params = params_str.split(';')
-    for p in params:
-        key, value = p.strip().split('=')
-        try:
-            Info[key] = float(value) if '.' in value else int(value)
-        except ValueError:
-            Info[key] = value
-
-    # Saltar líneas con % y procesar bloques
-    block_names = list(S.keys())
-    block_index = 0
-    current_data = []
-
-    for line in lines[2:]:
-        line = line.strip()
-        if not line or line.startswith('%'):
-            if current_data and block_index < 8:
-                arr = np.array(current_data)
-                if block_index == 0:
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        # Detectar inicio de bloque
+        if 'Parameters' in line:
+            # Extraer parámetros solo una vez
+            if 'Parameters' not in Info:
+                params_str = line.split('{',1)[1].rsplit('}',1)[0]
+                Info['Parameters'] = {
+                    k: float(v) if ('.' in v or 'e' in v.lower()) else int(v)
+                    for item in params_str.split(';')
+                    for k, v in [item.strip().split('=')]
+                }
+            # Saltar 3 líneas de cabecera
+            i += 3
+            data = []
+            while i < len(lines):
+                line = lines[i].strip()
+                if not line or 'Parameters' in line:
+                    break  # fin de bloque
+                parts = line.split()
+                if len(parts) >= 3:
+                    try:
+                        nums = [float(parts[0]), float(parts[1]), float(parts[2])]
+                        data.append(nums)
+                    except ValueError:
+                        pass
+                i += 1
+            if data:
+                arr = np.array(data)
+                if f is None:
                     f = arr[:, 0]
-                magnitude = arr[:, 1]
-                phase_deg = arr[:, 2]
-                S[block_names[block_index]] = magnitude * np.exp(1j * np.deg2rad(phase_deg))
-                current_data = []
-                block_index += 1
+                mag = arr[:, 1]
+                pha = arr[:, 2]
+                bloques.append(mag * np.exp(1j * np.deg2rad(pha)))
             continue
+        i += 1
 
-        try:
-            values = [float(val) for val in line.replace('\t', ' ').split()]
-            if len(values) >= 3:
-                current_data.append(values)
-        except ValueError:
-            continue
+    # Rellenar hasta 8 bloques
+    salida = []
+    for idx in range(8):
+        if idx < len(bloques):
+            salida.append(bloques[idx])
+        else:
+            salida.append(np.full_like(f, np.nan) + 1j * np.full_like(f, np.nan))
 
-    # Procesar último bloque si no terminó en %
-    if current_data and block_index < 8:
-        arr = np.array(current_data)
-        if block_index == 0:
-            f = arr[:, 0]
-        magnitude = arr[:, 1]
-        phase_deg = arr[:, 2]
-        S[block_names[block_index]] = magnitude * np.exp(1j * np.deg2rad(phase_deg))
+    return f, salida, Info
 
-    return f, S['S21_VV'], S['S21_HV'], S['S11_VV'], S['S11_HV'], S['S21_VH'], S['S21_HH'], S['S11_VH'], S['S11_HH'], Info
-
-def plot_S(freq, *signals, labels, linestyle='solid', ax1=None, ax2=None):
+def plot_S(freq, *signals, labels, linestyle='solid', ax1=None, ax2=None, suptitle=None):
     """
     Grafica la magnitud y la fase de varios parámetros S sobre la frecuencia.
     Puede reutilizar ejes existentes para añadir más curvas al mismo gráfico.
@@ -117,18 +105,18 @@ def plot_S(freq, *signals, labels, linestyle='solid', ax1=None, ax2=None):
         Estilo de línea para todas las curvas. Por defecto 'solid'.
     ax1, ax2 : matplotlib.axes.Axes, optional
         Ejes existentes para añadir curvas. Si no se dan, se crean nuevos.
+    suptitle : str, optional
+        Título general del gráfico.
         
-    ejemplo: 
-    # Primer grupo de curvas
-    ax1, ax2 = plot_S(f, S21_VV, S21_HV, labels=['S21_VV', 'S21_HV'], linestyle='solid')
-
-    # Segundo grupo de curvas en el mismo gráfico
-    plot_S(f, S11_VV, S11_HV, labels=['S11_VV', 'S11_HV'], linestyle='dashed', ax1=ax1, ax2=ax2)    
+    Returns
+    -------
+    ax1, ax2 : ejes de matplotlib
     """
     if ax1 is None or ax2 is None:
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
         nuevo_plot = True
     else:
+        fig = ax1.figure
         nuevo_plot = False
 
     for sig, label in zip(signals, labels):
@@ -136,8 +124,7 @@ def plot_S(freq, *signals, labels, linestyle='solid', ax1=None, ax2=None):
     ax1.set_ylabel('Magnitud (dB)')
     ax1.set_title('Parámetros S (módulo)')
     ax1.grid(True)
-    ax1.set_ylim(0,1)
-    ax2.set_xlim(min(freq), max(freq))
+    ax1.set_ylim(0, 1)
     ax1.legend()
 
     for sig, label in zip(signals, labels):
@@ -149,9 +136,11 @@ def plot_S(freq, *signals, labels, linestyle='solid', ax1=None, ax2=None):
     ax2.set_xlim(min(freq), max(freq))
     ax2.legend()
 
-    if nuevo_plot:
+    if suptitle:
+        fig.suptitle(suptitle, fontsize=14)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+    elif nuevo_plot:
         plt.tight_layout()
         plt.show()
 
     return ax1, ax2
-
