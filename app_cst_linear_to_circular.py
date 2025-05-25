@@ -13,7 +13,20 @@ st.set_page_config(page_title="Linear to Circular Polarization")
 
 st.title("Resultados de CST")
 st.subheader("Linear to Circular Polarization")
-
+st.markdown("""
+**Instrucciones:**
+1. Sube un archivo `.txt` o `.cst` exportado desde CST Studio con los parámetros S.
+    - La excitación por un único puerto 
+    - Dos modos, con un total de 8 datos. En este orden: 
+    - Zmax(1), Zmin(1)       
+    - Zmax(2), Zmin(1)       
+    - Zmin(1), Zmin(1)       
+    - El resto me da igual, no los usa. 
+2. La aplicación plotea:
+   - El módulo y fase de S21 y S11
+   - El Axial Ratio y la diferencia de fase
+3. Al final podrá exportar los resultados 
+""")
 uploaded_file = st.file_uploader("Deje caer aquí un fichero o pulse Browse files", type=["cst", "txt"])
 
 if uploaded_file is not None:
@@ -27,7 +40,7 @@ if uploaded_file is not None:
         info_line1 = str(Info.get('Parameters', {}).get('name', ''))
         info_line2 = ' '.join(f"{k}={v}" for k, v in Info.get('Parameters', {}).items() if k != 'name')
         info_text = f"{info_line1}\n{info_line2}"
-        st.text_area("Info", info_text, height=100)
+        st.text_area("Info", info_text, height=200)
 
         st.subheader("Figura 1: Parámetros S (módulo y fase)")
         plot_S(f, S21_VV, S21_HV, S11_VV, labels=['S21_VV', 'S21_HV', 'S11_VV'], suptitle="Parámetros S")
