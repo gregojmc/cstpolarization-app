@@ -15,9 +15,9 @@ st.title("Resultados de CST")
 st.subheader("Linear to Circular Polarization")
 st.markdown("""
 **Instrucciones:**
-1. Sube un archivo `.txt` o `.cst` exportado desde CST Studio con los parámetros S.
+1. Suba un `.txt`  de CST Studio mediante S-parameters, Export/Plot Data (ASCII):
     - La excitación por un único puerto 
-    - Dos modos, con un total de 8 datos. En este orden: 
+    - Dos modos, con un total de 4 u 8 datos. En este orden: 
     - Zmax(1), Zmin(1)       
     - Zmax(2), Zmin(1)       
     - Zmin(1), Zmin(1)       
