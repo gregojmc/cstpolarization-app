@@ -52,7 +52,7 @@ if uploaded_file is not None:
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
         ax1.plot(f, 20*np.log10(AR))
         ax1.set_title("Axial Ratio vs Frecuencia")
-        ax1.set_ylabel("Axial Ratio [dBm]")
+        ax1.set_ylabel("Axial Ratio [dB]")
         ax1.set_ylim(0, 10)
         ax1.grid()
         ax2.plot(f, np.rad2deg(phase_diff))
